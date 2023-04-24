@@ -7,4 +7,13 @@ it('sets the intercept alias from the callback', () => {
   // from the callback function: req.alias = "fruit"
   // stub the response using req.reply({ fruit: "kiwi" })
   // visit the page and confirm the intercept was used
+  cy.intercept('GET', '/fruit', (req) => {
+    if (req.url.includes('/fruit')) {
+      req.alias = 'fruit'
+    }
+    req.reply({ fruit: 'kiwi' })
+  })
+  cy.visit('/')
+  cy.wait('@fruit')
+  cy.contains('#fruit', 'kiwi')
 })
