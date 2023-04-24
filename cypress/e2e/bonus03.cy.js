@@ -1,4 +1,6 @@
-/// <reference types="cypress" />
+// since we are going to be using cy.dataSession
+// let's import its typings, which loads "cypress" types too
+/// <reference types="cypress-data-session" />
 
 describe('make the request and compare to the fixture', () => {
   // make a request to GET /sale
@@ -9,21 +11,34 @@ describe('make the request and compare to the fixture', () => {
   // https://on.cypress.io/fixture
   // compare the response body to the fixture
   // Tip: always use the "deep.equal" assertion to compare the objects
-  it('gives a response matching a fixture object')
+  it('gives a response matching a fixture object', () => {
+    cy.request('/sale')
+      .its('body')
+      .then((body) => {
+        cy.fixture('sale.json').should('deep.equal', body)
+      })
+  })
 
   // load the fixture first, then make the request
   // and compare the response body to the fixture object
-  it(
-    'gives a response matching a fixture object, loads the fixture first',
-  )
+  it('gives a response matching a fixture object, loads the fixture first', () => {
+    cy.fixture('sale.json').then((sale) => {
+      cy.request('/sale')
+        .its('body')
+        .should('deep.equal', sale)
+    })
+  })
 })
 
 // import the object from the JSON fixture file
 // and use it as a local variable in the spec
+import sale from '../fixtures/sale.json'
 describe('using JSON import', () => {
-  it(
-    'gives a response matching a fixture object loaded using import keyword',
-  )
+  it('gives a response matching a fixture object loaded using import keyword', () => {
+    cy.request('/sale')
+      .its('body')
+      .should('deep.equal', sale)
+  })
 })
 
 describe('load fixture before each test', () => {
@@ -31,40 +46,64 @@ describe('load fixture before each test', () => {
   // https://on.cypress.io/fixture
   // and save as an alias
   // https://on.cypress.io/as
-  beforeEach(() => {})
+  beforeEach(() => {
+    cy.fixture('sale.json').as('sale')
+  })
 
   // use the "function () { ... }" test callback syntax
   // to be able to access the fixture using "this.<alias name>" syntax
-  it('gives a response matching an alias set as a property')
+  it('gives a response matching an alias set as a property', function () {
+    cy.request('/sale')
+      .its('body')
+      .should('deep.equal', this.sale)
+  })
 })
 
 describe('Load once into a local variable', () => {
   // define a local variable and set it value once
   // from a "before" hook that loads the fixture
   // https://on.cypress.io/fixture
-  before(() => {})
+  let loadedSale
+  before(() => {
+    cy.fixture('sale.json').then((sale) => {
+      loadedSale = sale
+    })
+  })
 
   // in the test use the local variable
   // to check the response
-  it('gives a response matching a fixture loaded once')
+  it('gives a response matching a fixture loaded once', () => {
+    cy.request('/sale')
+      .its('body')
+      .should('deep.equal', loadedSale)
+  })
 })
 
 describe('load once, reset the alias', () => {
   // we can use a local variable to keep the value
   // loaded just once from "before" hook
   // https://on.cypress.io/fixture
-  before(() => {})
+  let tempSale
+  before(() => {
+    cy.fixture('sale.json').then((sale) => {
+      tempSale = sale
+    })
+  })
   // before each test, we can take the local variable
   // and define the alias using
   // https://on.cypress.io/wrap
   // https://on.cypress.io/as
-  beforeEach(() => {})
+  beforeEach(() => {
+    cy.wrap(tempSale).as('sale')
+  })
 
   // using the "function () { ... }" syntax
   // we can assess the alias using the "this.<alias name>" syntax
-  it(
-    'gives a response matching a fixture reset from a local variable',
-  )
+  it('gives a response matching a fixture reset from a local variable', function () {
+    cy.request('/sale')
+      .its('body')
+      .should('deep.equal', this.sale)
+  })
 })
 
 describe('using Cypress.env object to keep the data', () => {
@@ -72,11 +111,19 @@ describe('using Cypress.env object to keep the data', () => {
   // and store the data in Cypress.env object
   // https://on.cypress.io/env
   // Cypress.env('name', value)
-  before(() => {})
+  before(() => {
+    cy.fixture('sale.json').then((sale) => {
+      Cypress.env('sale', sale)
+    })
+  })
 
   // in the test use the data from Cypress.env object
   // Cypress.env('name')
-  it('uses sale from Cypress.env object')
+  it('uses sale from Cypress.env object', () => {
+    cy.request('/sale')
+      .its('body')
+      .should('deep.equal', Cypress.env('sale'))
+  })
 })
 
 // install the plugin if necessary
@@ -84,13 +131,25 @@ describe('using Cypress.env object to keep the data', () => {
 // https://github.com/bahmutov/cypress-data-session
 // import 'cypress-data-session' module
 // which registers the cy.dataSession() command
+import 'cypress-data-session'
 describe('using cypress-data-session plugin', () => {
   // before each test, call the cy.dataSession
   // and use cy.fixture command to load the fixture
   // Note: the fixture is loaded only once
-  beforeEach(() => {})
+  beforeEach(() => {
+    cy.dataSession({
+      name: 'sale',
+      setup() {
+        return cy.fixture('sale.json')
+      },
+    })
+  })
   // use the "function () { ... }" test callback syntax
   // to access the data session data (the fixture)
   // by name using "this.<data session name>"
-  it('matches the sale')
+  it('matches the sale', function () {
+    cy.request('/sale')
+      .its('body')
+      .should('deep.equal', this.sale)
+  })
 })
