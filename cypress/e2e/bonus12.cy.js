@@ -42,4 +42,3 @@ it('saves the response without local variable', () => {
       cy.writeFile('response.json', json)
     })
 })
-
